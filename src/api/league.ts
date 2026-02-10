@@ -40,15 +40,15 @@ export class LeagueApi {
     )
   }
 
-  /** Get league entries by encrypted PUUID */
-  async getByPUUID(
+  /** Get league entries by encrypted summoner ID */
+  async getBySummoner(
     region: Region,
-    puuid: string,
+    summonerId: string,
   ): Promise<LeagueEntryDTO[]> {
     const host = getRegionalHost(region)
     return this.exec(
       'league',
-      `${host}/tft/league/v1/entries/by-puuid/${puuid}`,
+      `${host}/tft/league/v1/entries/by-summoner/${summonerId}`,
     )
   }
 }

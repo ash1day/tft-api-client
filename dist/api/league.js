@@ -25,10 +25,10 @@ export class LeagueApi {
         const params = page != null && page > 1 ? `?page=${page}` : '';
         return this.exec('league', `${host}/tft/league/v1/entries/${tier}/${division}${params}`);
     }
-    /** Get league entries by encrypted PUUID */
-    async getByPUUID(region, puuid) {
+    /** Get league entries by encrypted summoner ID */
+    async getBySummoner(region, summonerId) {
         const host = getRegionalHost(region);
-        return this.exec('league', `${host}/tft/league/v1/entries/by-puuid/${puuid}`);
+        return this.exec('league', `${host}/tft/league/v1/entries/by-summoner/${summonerId}`);
     }
 }
 //# sourceMappingURL=league.js.map

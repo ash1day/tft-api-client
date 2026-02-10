@@ -76,17 +76,17 @@ describe('LeagueApi', () => {
     })
   })
 
-  describe('getByPUUID', () => {
-    it('calls exec with bucket=league and correct URL containing puuid', async () => {
+  describe('getBySummoner', () => {
+    it('calls exec with bucket=league and correct URL containing summoner ID', async () => {
       const { exec, api } = setup()
-      const puuid = 'abc-123-def-456'
-      await api.getByPUUID('JP1', puuid)
+      const summonerId = 'encrypted-summoner-id-123'
+      await api.getBySummoner('JP1', summonerId)
 
       expect(exec).toHaveBeenCalledOnce()
       const [bucket, url] = exec.mock.calls[0]
       expect(bucket).toBe('league')
       expect(url).toContain('jp1.api.riotgames.com')
-      expect(url).toContain(`/tft/league/v1/entries/by-puuid/${puuid}`)
+      expect(url).toContain(`/tft/league/v1/entries/by-summoner/${summonerId}`)
     })
   })
 })
