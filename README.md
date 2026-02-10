@@ -51,6 +51,15 @@ Preconfigured defaults based on Riot's published API limits.
 
 Requests are automatically queued and executed within rate limits. On 429 responses, the `Retry-After` header is respected.
 
+> **Note**: Default limits are for production API keys. Development keys have stricter application-level limits (20 req/s, 100 req/2min). Use `appRateLimit` to configure:
+
+```typescript
+const client = new TftClient({
+  apiKey: '...',
+  appRateLimit: { maxRequests: 20, windowMs: 1_000 },
+})
+```
+
 Custom limits can be configured:
 
 ```typescript
@@ -59,6 +68,36 @@ const client = new TftClient({
   rateLimits: {
     'match-detail': { maxRequests: 100, windowMs: 10_000 },
   },
+})
+```
+
+## Error Handling
+
+The library throws two error types:
+
+```typescript
+import { ApiError, RateLimitError } from 'tft-api-client'
+
+try {
+  const match = await client.match.get('asia', matchId)
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    // 429 response — automatically retried if retry is configured
+    console.log(error.retryAfterMs) // ms to wait (from Retry-After header)
+  } else if (error instanceof ApiError) {
+    // Non-2xx response
+    console.log(error.status) // HTTP status code
+    console.log(error.body)   // Response body if available
+  }
+}
+```
+
+Requests timeout after 30 seconds by default. Configure with `timeout` option:
+
+```typescript
+const client = new TftClient({
+  apiKey: '...',
+  timeout: 10_000, // 10 seconds
 })
 ```
 
@@ -71,7 +110,9 @@ const client = new TftClient({
 | `apiKey` | `string` | (required) | Riot API key |
 | `bufferRate` | `number` | `0.9` | Usage ratio against rate limit (0-1) |
 | `rateLimits` | `Record<string, RateLimitConfig>` | - | Custom limits per bucket |
+| `appRateLimit` | `RateLimitConfig` | - | Application-level rate limit across all buckets |
 | `retry` | `RetryConfig` | - | Retry configuration |
+| `timeout` | `number` | `30000` | Request timeout in milliseconds |
 
 ### `client.league`
 
@@ -100,6 +141,14 @@ import { Regions, RegionGroups, RegionToGroup } from 'tft-api-client'
 // Region groups: americas, europe, asia, sea
 
 const group = RegionToGroup['JP1'] // 'asia'
+```
+
+## Cleanup
+
+Call `destroy()` to cancel pending requests and release resources:
+
+```typescript
+client.destroy()
 ```
 
 ## Development

@@ -28,10 +28,14 @@ export interface TftClientConfig {
   apiKey: string
   /** Override default rate limits per bucket */
   rateLimits?: Partial<Record<string, RateLimitConfig>>
+  /** Application-level rate limit (applies to all requests across buckets) */
+  appRateLimit?: RateLimitConfig
   /** Default buffer rate for all buckets (0-1, default 0.9) */
   bufferRate?: number
   /** Retry configuration */
   retry?: RetryConfig
+  /** Request timeout in milliseconds (default: 30000) */
+  timeout?: number
 }
 
 /**
@@ -60,13 +64,23 @@ export class TftClient {
   private readonly rateLimiter: RateLimiter
   private readonly apiKey: string
   private readonly retryConfig: RetryConfig | undefined
+  private readonly hasAppRateLimit: boolean
+  private readonly timeout: number
 
   constructor(config: TftClientConfig) {
+    if (!config.apiKey) {
+      throw new Error('apiKey is required')
+    }
+
     this.apiKey = config.apiKey
     this.retryConfig = config.retry
+    this.timeout = config.timeout ?? 30_000
 
     // Merge user overrides with defaults, applying bufferRate
     const bufferRate = config.bufferRate ?? 0.9
+    if (bufferRate <= 0 || bufferRate > 1) {
+      throw new Error('bufferRate must be between 0 (exclusive) and 1 (inclusive)')
+    }
     const mergedLimits: Record<string, RateLimitConfig> = {}
     for (const [name, defaults] of Object.entries(DEFAULT_RATE_LIMITS)) {
       const override = config.rateLimits?.[name]
@@ -74,6 +88,15 @@ export class TftClient {
         maxRequests: override?.maxRequests ?? defaults.maxRequests,
         windowMs: override?.windowMs ?? defaults.windowMs,
         bufferRate: override?.bufferRate ?? bufferRate,
+      }
+    }
+
+    // Add application-level rate limit bucket if configured
+    this.hasAppRateLimit = config.appRateLimit != null
+    if (config.appRateLimit) {
+      mergedLimits['application'] = {
+        ...config.appRateLimit,
+        bufferRate: config.appRateLimit.bufferRate ?? bufferRate,
       }
     }
 
@@ -89,9 +112,13 @@ export class TftClient {
   }
 
   private async executeRequest<T>(bucketName: string, url: string): Promise<T> {
-    return this.rateLimiter.execute(bucketName, () =>
+    const fn = () => this.rateLimiter.execute(bucketName, () =>
       withRetry(() => this.fetchJson<T>(url), this.retryConfig),
     )
+    if (this.hasAppRateLimit) {
+      return this.rateLimiter.execute('application', fn)
+    }
+    return fn()
   }
 
   private async executeBatch<T, K>(
@@ -99,9 +126,13 @@ export class TftClient {
     keys: K[],
     urlFn: (key: K) => string,
   ): Promise<T[]> {
-    return this.rateLimiter.executeBatch(bucketName, keys, (key) =>
+    const fn = () => this.rateLimiter.executeBatch(bucketName, keys, (key) =>
       withRetry(() => this.fetchJson<T>(urlFn(key)), this.retryConfig),
     )
+    if (this.hasAppRateLimit) {
+      return this.rateLimiter.execute('application', fn)
+    }
+    return fn()
   }
 
   private async fetchJson<T>(url: string): Promise<T> {
@@ -110,16 +141,24 @@ export class TftClient {
         'X-Riot-Token': this.apiKey,
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(this.timeout),
     })
 
     if (!response.ok) {
       // Handle rate limit responses specially
       if (response.status === 429) {
         const retryAfter = response.headers.get('Retry-After')
-        const retryAfterMs = retryAfter ? Number(retryAfter) * 1000 : undefined
+        let retryAfterMs: number | undefined
+        if (retryAfter) {
+          const parsed = Number(retryAfter)
+          retryAfterMs = Number.isNaN(parsed) ? undefined : parsed * 1000
+        }
+        let body: unknown
+        try { body = await response.json() } catch { /* ignore */ }
         throw new RateLimitError(
           `Rate limited on ${url}`,
           retryAfterMs,
+          body,
         )
       }
 
@@ -138,5 +177,9 @@ export class TftClient {
     }
 
     return (await response.json()) as T
+  }
+
+  destroy(): void {
+    this.rateLimiter.destroy()
   }
 }

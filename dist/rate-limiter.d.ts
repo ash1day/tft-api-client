@@ -16,6 +16,7 @@ export interface BucketStatus {
 }
 export declare class RateLimiter {
     private readonly buckets;
+    private destroyed;
     constructor(configs: Record<string, RateLimitConfig>);
     /** Execute a request under a specific bucket's rate limit */
     execute<T>(bucketName: string, fn: () => Promise<T>): Promise<T>;
@@ -25,6 +26,8 @@ export declare class RateLimiter {
     }): Promise<T[]>;
     /** Get current state of a bucket */
     getStatus(bucketName: string): BucketStatus;
+    /** Reject all queued requests, wake drain loops, and prevent new requests */
+    destroy(): void;
     private getBucket;
     /** Remove timestamps outside the current window */
     private pruneTimestamps;
@@ -32,6 +35,8 @@ export declare class RateLimiter {
     private availableCapacity;
     /** Calculate how long to wait until a slot opens up */
     private waitTimeMs;
+    /** Sleep that can be interrupted when a request completes */
+    private interruptibleSleep;
     /** Process queued requests as capacity becomes available */
     private drain;
 }

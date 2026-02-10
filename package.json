@@ -2,6 +2,11 @@
   "name": "tft-api-client",
   "version": "0.1.0",
   "description": "TFT API client with per-endpoint rate limiting",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ash1day/tft-api-client.git"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,7 +14,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
       "default": "./dist/index.js"
     }
   },

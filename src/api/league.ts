@@ -1,6 +1,6 @@
 import type { Region } from '../types.js'
 import type { LeagueListDTO, LeagueEntryDTO, Division } from './types.js'
-import type { Tier } from '../types.js'
+import type { LowerTier } from '../types.js'
 import type { RequestExecutor } from '../client.js'
 import { getRegionalHost } from '../regions.js'
 
@@ -28,7 +28,7 @@ export class LeagueApi {
   /** Get league entries by tier and division (paginated) */
   async getByTierDivision(
     region: Region,
-    tier: Tier,
+    tier: LowerTier,
     division: Division,
     page?: number,
   ): Promise<LeagueEntryDTO[]> {

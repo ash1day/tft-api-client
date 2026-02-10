@@ -1,8 +1,6 @@
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
 export class RateLimiter {
     buckets = new Map();
+    destroyed = false;
     constructor(configs) {
         for (const [name, config] of Object.entries(configs)) {
             this.buckets.set(name, {
@@ -15,11 +13,15 @@ export class RateLimiter {
                 queue: [],
                 inFlight: 0,
                 draining: false,
+                wakeResolve: null,
             });
         }
     }
     /** Execute a request under a specific bucket's rate limit */
     execute(bucketName, fn) {
+        if (this.destroyed) {
+            return Promise.reject(new Error('RateLimiter destroyed'));
+        }
         const bucket = this.getBucket(bucketName);
         return new Promise((resolve, reject) => {
             bucket.queue.push({
@@ -59,6 +61,20 @@ export class RateLimiter {
             inFlight: bucket.inFlight,
         };
     }
+    /** Reject all queued requests, wake drain loops, and prevent new requests */
+    destroy() {
+        this.destroyed = true;
+        for (const bucket of this.buckets.values()) {
+            // Reject all queued items
+            for (const item of bucket.queue) {
+                item.reject(new Error('RateLimiter destroyed'));
+            }
+            bucket.queue = [];
+            // Wake sleeping drain loop so it exits
+            bucket.wakeResolve?.();
+            bucket.wakeResolve = null;
+        }
+    }
     getBucket(name) {
         const bucket = this.buckets.get(name);
         if (!bucket) {
@@ -96,6 +112,16 @@ export class RateLimiter {
         const waitMs = expiresAt - Date.now();
         return Math.max(0, waitMs + 1); // +1ms safety margin
     }
+    /** Sleep that can be interrupted when a request completes */
+    interruptibleSleep(bucket, ms) {
+        return new Promise((resolve) => {
+            const timer = setTimeout(resolve, ms);
+            bucket.wakeResolve = () => {
+                clearTimeout(timer);
+                resolve();
+            };
+        });
+    }
     /** Process queued requests as capacity becomes available */
     async drain(bucket) {
         if (bucket.draining)
@@ -106,15 +132,13 @@ export class RateLimiter {
                 const capacity = this.availableCapacity(bucket);
                 if (capacity <= 0) {
                     const waitMs = this.waitTimeMs(bucket);
-                    if (waitMs > 0) {
-                        await sleep(waitMs);
-                    }
+                    // Always yield at least 1ms to allow in-flight .finally() callbacks to run
+                    await this.interruptibleSleep(bucket, Math.max(1, waitMs));
                     continue;
                 }
                 // Process up to `capacity` items from the queue
                 const batch = bucket.queue.splice(0, capacity);
                 for (const item of batch) {
-                    bucket.timestamps.push(Date.now());
                     bucket.inFlight++;
                     // Fire and don't await; resolution happens via item.resolve/reject
                     item
@@ -126,20 +150,18 @@ export class RateLimiter {
                         item.reject(error);
                     })
                         .finally(() => {
+                        bucket.timestamps.push(Date.now());
                         bucket.inFlight--;
-                        // Re-trigger drain in case there are more queued items
-                        // that became unblocked when this request completed
-                        if (bucket.queue.length > 0 && !bucket.draining) {
-                            this.drain(bucket);
+                        // Wake the drain loop if there are queued items waiting
+                        if (bucket.queue.length > 0) {
+                            bucket.wakeResolve?.();
                         }
                     });
                 }
                 // If there are still items in the queue, wait for capacity
                 if (bucket.queue.length > 0) {
                     const waitMs = this.waitTimeMs(bucket);
-                    if (waitMs > 0) {
-                        await sleep(waitMs);
-                    }
+                    await this.interruptibleSleep(bucket, Math.max(1, waitMs));
                 }
             }
         }

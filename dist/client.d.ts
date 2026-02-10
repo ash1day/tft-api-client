@@ -18,10 +18,14 @@ export interface TftClientConfig {
     apiKey: string;
     /** Override default rate limits per bucket */
     rateLimits?: Partial<Record<string, RateLimitConfig>>;
+    /** Application-level rate limit (applies to all requests across buckets) */
+    appRateLimit?: RateLimitConfig;
     /** Default buffer rate for all buckets (0-1, default 0.9) */
     bufferRate?: number;
     /** Retry configuration */
     retry?: RetryConfig;
+    /** Request timeout in milliseconds (default: 30000) */
+    timeout?: number;
 }
 export declare class TftClient {
     readonly league: LeagueApi;
@@ -30,9 +34,12 @@ export declare class TftClient {
     private readonly rateLimiter;
     private readonly apiKey;
     private readonly retryConfig;
+    private readonly hasAppRateLimit;
+    private readonly timeout;
     constructor(config: TftClientConfig);
     private executeRequest;
     private executeBatch;
     private fetchJson;
+    destroy(): void;
 }
 //# sourceMappingURL=client.d.ts.map

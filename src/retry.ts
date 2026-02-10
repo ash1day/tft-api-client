@@ -1,4 +1,5 @@
 import { RateLimitError } from './errors.js'
+import { sleep } from './utils.js'
 
 export interface RetryConfig {
   /** Maximum number of attempts (default: 3) */
@@ -51,10 +52,6 @@ function computeDelay(attempt: number, config: Required<RetryConfig>, error: unk
   const jitter = Math.random() * 500
 
   return Math.min(exponentialDelay + jitter, config.maxDelayMs)
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function withRetry<T>(fn: () => Promise<T>, config?: RetryConfig): Promise<T> {

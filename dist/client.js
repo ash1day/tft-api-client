@@ -28,11 +28,20 @@ export class TftClient {
     rateLimiter;
     apiKey;
     retryConfig;
+    hasAppRateLimit;
+    timeout;
     constructor(config) {
+        if (!config.apiKey) {
+            throw new Error('apiKey is required');
+        }
         this.apiKey = config.apiKey;
         this.retryConfig = config.retry;
+        this.timeout = config.timeout ?? 30_000;
         // Merge user overrides with defaults, applying bufferRate
         const bufferRate = config.bufferRate ?? 0.9;
+        if (bufferRate <= 0 || bufferRate > 1) {
+            throw new Error('bufferRate must be between 0 (exclusive) and 1 (inclusive)');
+        }
         const mergedLimits = {};
         for (const [name, defaults] of Object.entries(DEFAULT_RATE_LIMITS)) {
             const override = config.rateLimits?.[name];
@@ -40,6 +49,14 @@ export class TftClient {
                 maxRequests: override?.maxRequests ?? defaults.maxRequests,
                 windowMs: override?.windowMs ?? defaults.windowMs,
                 bufferRate: override?.bufferRate ?? bufferRate,
+            };
+        }
+        // Add application-level rate limit bucket if configured
+        this.hasAppRateLimit = config.appRateLimit != null;
+        if (config.appRateLimit) {
+            mergedLimits['application'] = {
+                ...config.appRateLimit,
+                bufferRate: config.appRateLimit.bufferRate ?? bufferRate,
             };
         }
         this.rateLimiter = new RateLimiter(mergedLimits);
@@ -51,10 +68,18 @@ export class TftClient {
         this.summoner = new SummonerApi(exec);
     }
     async executeRequest(bucketName, url) {
-        return this.rateLimiter.execute(bucketName, () => withRetry(() => this.fetchJson(url), this.retryConfig));
+        const fn = () => this.rateLimiter.execute(bucketName, () => withRetry(() => this.fetchJson(url), this.retryConfig));
+        if (this.hasAppRateLimit) {
+            return this.rateLimiter.execute('application', fn);
+        }
+        return fn();
     }
     async executeBatch(bucketName, keys, urlFn) {
-        return this.rateLimiter.executeBatch(bucketName, keys, (key) => withRetry(() => this.fetchJson(urlFn(key)), this.retryConfig));
+        const fn = () => this.rateLimiter.executeBatch(bucketName, keys, (key) => withRetry(() => this.fetchJson(urlFn(key)), this.retryConfig));
+        if (this.hasAppRateLimit) {
+            return this.rateLimiter.execute('application', fn);
+        }
+        return fn();
     }
     async fetchJson(url) {
         const response = await fetch(url, {
@@ -62,13 +87,23 @@ export class TftClient {
                 'X-Riot-Token': this.apiKey,
                 Accept: 'application/json',
             },
+            signal: AbortSignal.timeout(this.timeout),
         });
         if (!response.ok) {
             // Handle rate limit responses specially
             if (response.status === 429) {
                 const retryAfter = response.headers.get('Retry-After');
-                const retryAfterMs = retryAfter ? Number(retryAfter) * 1000 : undefined;
-                throw new RateLimitError(`Rate limited on ${url}`, retryAfterMs);
+                let retryAfterMs;
+                if (retryAfter) {
+                    const parsed = Number(retryAfter);
+                    retryAfterMs = Number.isNaN(parsed) ? undefined : parsed * 1000;
+                }
+                let body;
+                try {
+                    body = await response.json();
+                }
+                catch { /* ignore */ }
+                throw new RateLimitError(`Rate limited on ${url}`, retryAfterMs, body);
             }
             let body;
             try {
@@ -80,6 +115,9 @@ export class TftClient {
             throw new ApiError(`API request failed: ${response.status} ${response.statusText}`, response.status, body);
         }
         return (await response.json());
+    }
+    destroy() {
+        this.rateLimiter.destroy();
     }
 }
 //# sourceMappingURL=client.js.map

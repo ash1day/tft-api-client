@@ -1,4 +1,5 @@
 import { RateLimitError } from './errors.js';
+import { sleep } from './utils.js';
 const DEFAULT_CONFIG = {
     maxAttempts: 3,
     baseDelayMs: 1000,
@@ -31,9 +32,6 @@ function computeDelay(attempt, config, error) {
     // Add jitter: random 0-500ms to prevent thundering herd
     const jitter = Math.random() * 500;
     return Math.min(exponentialDelay + jitter, config.maxDelayMs);
-}
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 export async function withRetry(fn, config) {
     const resolvedConfig = { ...DEFAULT_CONFIG, ...config };

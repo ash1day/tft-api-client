@@ -1,9 +1,11 @@
 export class RateLimitError extends Error {
     retryAfterMs;
-    constructor(message, retryAfterMs) {
+    body;
+    constructor(message, retryAfterMs, body) {
         super(message);
-        this.name = 'RateLimitError';
         this.retryAfterMs = retryAfterMs;
+        this.body = body;
+        this.name = 'RateLimitError';
     }
 }
 export class ApiError extends Error {

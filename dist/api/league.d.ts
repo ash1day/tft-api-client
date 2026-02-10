@@ -1,6 +1,6 @@
 import type { Region } from '../types.js';
 import type { LeagueListDTO, LeagueEntryDTO, Division } from './types.js';
-import type { Tier } from '../types.js';
+import type { LowerTier } from '../types.js';
 import type { RequestExecutor } from '../client.js';
 export declare class LeagueApi {
     private readonly exec;
@@ -12,6 +12,6 @@ export declare class LeagueApi {
     /** Get Master league entries */
     getMasterLeague(region: Region): Promise<LeagueListDTO>;
     /** Get league entries by tier and division (paginated) */
-    getByTierDivision(region: Region, tier: Tier, division: Division, page?: number): Promise<LeagueEntryDTO[]>;
+    getByTierDivision(region: Region, tier: LowerTier, division: Division, page?: number): Promise<LeagueEntryDTO[]>;
 }
 //# sourceMappingURL=league.d.ts.map

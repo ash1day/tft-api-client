@@ -1,6 +1,6 @@
 // Core client
 export { TftClient } from './client.js'
-export type { TftClientConfig, RequestExecutor, BatchExecutor } from './client.js'
+export type { TftClientConfig } from './client.js'
 
 // Rate limiter
 export { RateLimiter } from './rate-limiter.js'
@@ -28,10 +28,7 @@ export type {
   Region,
   RegionGroup,
   Tier,
-  MatchData,
-  ParticipantData,
-  TraitData,
-  UnitData,
+  LowerTier,
 } from './types.js'
 
 // API sub-module types

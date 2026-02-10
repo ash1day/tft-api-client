@@ -41,53 +41,6 @@ export declare const Tiers: {
     readonly IRON: "IRON";
 };
 export type Tier = (typeof Tiers)[keyof typeof Tiers];
-/** TFT match participant data */
-export interface ParticipantData {
-    puuid: string;
-    placement: number;
-    level: number;
-    gold_left: number;
-    last_round: number;
-    time_eliminated: number;
-    traits: TraitData[];
-    units: UnitData[];
-    augments: string[];
-    companion: {
-        content_ID: string;
-        item_ID: number;
-        skin_ID: number;
-        species: string;
-    };
-}
-export interface TraitData {
-    name: string;
-    num_units: number;
-    style: number;
-    tier_current: number;
-    tier_total: number;
-}
-export interface UnitData {
-    character_id: string;
-    itemNames: string[];
-    items: number[];
-    name: string;
-    rarity: number;
-    tier: number;
-}
-/** TFT match data from Riot API */
-export interface MatchData {
-    metadata: {
-        match_id: string;
-        participants: string[];
-    };
-    info: {
-        game_datetime: number;
-        game_version: string;
-        participants: ParticipantData[];
-        queue_id: number;
-        tft_set_number: number;
-        tft_game_type: string;
-        tft_set_core_name: string;
-    };
-}
+/** Tiers that have divisions (Diamond and below) */
+export type LowerTier = 'DIAMOND' | 'EMERALD' | 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE' | 'IRON';
 //# sourceMappingURL=types.d.ts.map

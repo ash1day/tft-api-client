@@ -1,10 +1,11 @@
 export class RateLimitError extends Error {
-  readonly retryAfterMs?: number
-
-  constructor(message: string, retryAfterMs?: number) {
+  constructor(
+    message: string,
+    public readonly retryAfterMs?: number,
+    public readonly body?: unknown,
+  ) {
     super(message)
     this.name = 'RateLimitError'
-    this.retryAfterMs = retryAfterMs
   }
 }
 
