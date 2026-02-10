@@ -13,7 +13,7 @@ export declare class LeagueApi {
     getMasterLeague(region: Region): Promise<LeagueListDTO>;
     /** Get league entries by tier and division (paginated) */
     getByTierDivision(region: Region, tier: LowerTier, division: Division, page?: number): Promise<LeagueEntryDTO[]>;
-    /** Get league entries by encrypted summoner ID */
-    getBySummoner(region: Region, summonerId: string): Promise<LeagueEntryDTO[]>;
+    /** Get league entries by encrypted PUUID */
+    getByPUUID(region: Region, puuid: string): Promise<LeagueEntryDTO[]>;
 }
 //# sourceMappingURL=league.d.ts.map
