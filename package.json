@@ -1,5 +1,5 @@
 {
-  "name": "@tn/tft-api-client",
+  "name": "tft-api-client",
   "version": "0.1.0",
   "description": "TFT API client with per-endpoint rate limiting",
   "type": "module",

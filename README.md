@@ -1,25 +1,23 @@
-# @tn/tft-api-client
+# tft-api-client
 
-Riot Games TFT API クライアント。エンドポイントごとのレートリミットを自動管理する。
+Riot Games TFT API client with automatic per-endpoint rate limiting.
 
 ## Install
 
 ```bash
-# GitHub から直接
-yarn add @tn/tft-api-client@github:ash1day/tft-api-client
+yarn add tft-api-client@github:ash1day/tft-api-client
 
-# npm
 npm install github:ash1day/tft-api-client
 ```
 
 ## Usage
 
 ```typescript
-import { TftClient } from '@tn/tft-api-client'
+import { TftClient } from 'tft-api-client'
 
 const client = new TftClient({
   apiKey: process.env.RIOT_API_KEY!,
-  bufferRate: 0.9,       // レートリミットの90%まで使用（デフォルト）
+  bufferRate: 0.9,       // use 90% of rate limit (default)
   retry: { maxAttempts: 3 },
 })
 
@@ -32,7 +30,7 @@ const entries = await client.league.getByTierDivision('NA1', 'DIAMOND', 'I')
 const matchIds = await client.match.list('asia', puuid, { count: 20, startTime })
 const match = await client.match.get('asia', matchId)
 
-// バッチ取得（レートリミット内で自動並列化）
+// Batch requests (automatically parallelized within rate limits)
 const matchIdMap = await client.match.batchList('asia', puuids, { count: 100 })
 const matchMap = await client.match.batchGet('asia', matchIds)
 
@@ -42,7 +40,7 @@ const summoner = await client.summoner.getByPuuid('JP1', puuid)
 
 ## Rate Limits
 
-Riot API の公式レートリミットに基づいたデフォルト値が設定済み。
+Preconfigured defaults based on Riot's published API limits.
 
 | Bucket | Limit | Window |
 |--------|-------|--------|
@@ -51,9 +49,9 @@ Riot API の公式レートリミットに基づいたデフォルト値が設�
 | `match-detail` | 250 req | 10s |
 | `summoner` | 1600 req | 60s |
 
-リクエストは自動的にキューイングされ、レートリミットの範囲内で順次実行される。429レスポンス時は `Retry-After` ヘッダーを尊重してリトライする。
+Requests are automatically queued and executed within rate limits. On 429 responses, the `Retry-After` header is respected.
 
-カスタムリミットも設定可能:
+Custom limits can be configured:
 
 ```typescript
 const client = new TftClient({
@@ -70,36 +68,36 @@ const client = new TftClient({
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `apiKey` | `string` | (required) | Riot API キー |
-| `bufferRate` | `number` | `0.9` | レートリミットに対する使用率 (0-1) |
-| `rateLimits` | `Record<string, RateLimitConfig>` | - | バケットごとのカスタムリミット |
-| `retry` | `RetryConfig` | - | リトライ設定 |
+| `apiKey` | `string` | (required) | Riot API key |
+| `bufferRate` | `number` | `0.9` | Usage ratio against rate limit (0-1) |
+| `rateLimits` | `Record<string, RateLimitConfig>` | - | Custom limits per bucket |
+| `retry` | `RetryConfig` | - | Retry configuration |
 
 ### `client.league`
 
-- `getChallengerLeague(region)` - Challenger リーグ取得
-- `getGrandMasterLeague(region)` - GrandMaster リーグ取得
-- `getMasterLeague(region)` - Master リーグ取得
-- `getByTierDivision(region, tier, division, page?)` - ティア・ディビジョン別取得
+- `getChallengerLeague(region)` - Get Challenger league entries
+- `getGrandMasterLeague(region)` - Get GrandMaster league entries
+- `getMasterLeague(region)` - Get Master league entries
+- `getByTierDivision(region, tier, division, page?)` - Get entries by tier and division
 
 ### `client.match`
 
-- `list(regionGroup, puuid, options?)` - マッチID一覧取得
-- `get(regionGroup, matchId)` - マッチ詳細取得
-- `batchList(regionGroup, puuids, options?)` - 複数プレイヤーのマッチID一括取得
-- `batchGet(regionGroup, matchIds)` - マッチ詳細一括取得
+- `list(regionGroup, puuid, options?)` - Get match ID list
+- `get(regionGroup, matchId)` - Get match details
+- `batchList(regionGroup, puuids, options?)` - Batch fetch match IDs for multiple players
+- `batchGet(regionGroup, matchIds)` - Batch fetch match details
 
 ### `client.summoner`
 
-- `getByPuuid(region, puuid)` - PUUID からサモナー情報取得
+- `getByPuuid(region, puuid)` - Get summoner by PUUID
 
 ## Regions
 
 ```typescript
-import { Regions, RegionGroups, RegionToGroup } from '@tn/tft-api-client'
+import { Regions, RegionGroups, RegionToGroup } from 'tft-api-client'
 
-// リージョン: JP1, KR, NA1, EUW1, EUN1, BR1, LA1, LA2, OC1, TR1, VN2
-// リージョングループ: americas, europe, asia, sea
+// Regions: JP1, KR, NA1, EUW1, EUN1, BR1, LA1, LA2, OC1, TR1, VN2
+// Region groups: americas, europe, asia, sea
 
 const group = RegionToGroup['JP1'] // 'asia'
 ```
@@ -107,7 +105,7 @@ const group = RegionToGroup['JP1'] // 'asia'
 ## Development
 
 ```bash
-npm run build       # ビルド
-npm run test        # テスト実行
-npm run typecheck   # 型チェック
+npm run build       # Build
+npm run test        # Run tests
+npm run typecheck   # Type check
 ```
