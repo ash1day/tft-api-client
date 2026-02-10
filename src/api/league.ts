@@ -39,4 +39,16 @@ export class LeagueApi {
       `${host}/tft/league/v1/entries/${tier}/${division}${params}`,
     )
   }
+
+  /** Get league entries by encrypted PUUID */
+  async getByPUUID(
+    region: Region,
+    puuid: string,
+  ): Promise<LeagueEntryDTO[]> {
+    const host = getRegionalHost(region)
+    return this.exec(
+      'league',
+      `${host}/tft/league/v1/entries/by-puuid/${puuid}`,
+    )
+  }
 }

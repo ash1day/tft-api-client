@@ -19,10 +19,11 @@ export interface LeagueItemDTO {
     freshBlood: boolean;
     hotStreak: boolean;
 }
-/** League entry response from /tft/league/v1/entries/{tier}/{division} */
+/** League entry response from /tft/league/v1/entries/{tier}/{division} or /by-puuid/{puuid} */
 export interface LeagueEntryDTO {
     leagueId: string;
     summonerId: string;
+    puuid: string;
     queueType: string;
     tier: string;
     rank: string;

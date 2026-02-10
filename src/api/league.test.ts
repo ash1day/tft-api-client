@@ -75,4 +75,18 @@ describe('LeagueApi', () => {
       expect(url).not.toContain('?page=')
     })
   })
+
+  describe('getByPUUID', () => {
+    it('calls exec with bucket=league and correct URL containing puuid', async () => {
+      const { exec, api } = setup()
+      const puuid = 'abc-123-def-456'
+      await api.getByPUUID('JP1', puuid)
+
+      expect(exec).toHaveBeenCalledOnce()
+      const [bucket, url] = exec.mock.calls[0]
+      expect(bucket).toBe('league')
+      expect(url).toContain('jp1.api.riotgames.com')
+      expect(url).toContain(`/tft/league/v1/entries/by-puuid/${puuid}`)
+    })
+  })
 })
